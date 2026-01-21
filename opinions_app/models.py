@@ -11,6 +11,7 @@ class Opinion(db.Model):
     source = db.Column(db.String(256))
     added_by = db.Column(db.String(64))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    images = db.Column(db.JSON)
 
     def to_dict(self):
         return dict(

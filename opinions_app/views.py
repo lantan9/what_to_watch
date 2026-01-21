@@ -5,6 +5,7 @@ from flask import abort, flash, redirect, render_template, url_for
 from . import app, db
 from .forms import OpinionForm
 from .models import Opinion
+from .dropbox import async_upload_files_to_dropbox
 
 
 def random_opinion():
@@ -22,25 +23,32 @@ def index_view():
     return render_template('opinion.html', opinion=opinion)
     
 
+@app.route('/opinions/<int:id>')
+def opinion_view(id):
+    opinion = Opinion.query.get_or_404(id)
+    return render_template('opinion.html', opinion=opinion)
+
+
 @app.route('/add', methods=['GET', 'POST'])
-def add_opinion_view():
+# Допишите ключевое слово async к функции.
+async def add_opinion_view():
     form = OpinionForm()
     if form.validate_on_submit():
         text = form.text.data
         if Opinion.query.filter_by(text=text).first() is not None:
             flash('Такое мнение уже было оставлено ранее!')
             return render_template('add_opinion.html', form=form)
+        # Замените вызов синхронной функции на вызов асинхронной.
+        # Обязательно добавьте ключевое слово await, 
+        # так как функция async_upload_files_to_dropbox() асинхронная.
+        urls = await async_upload_files_to_dropbox(form.images.data)
         opinion = Opinion(
             title=form.title.data, 
             text=text, 
-            source=form.source.data
+            source=form.source.data,
+            images=urls
         )
         db.session.add(opinion)
         db.session.commit()
         return redirect(url_for('opinion_view', id=opinion.id))
     return render_template('add_opinion.html', form=form)
-
-@app.route('/opinions/<int:id>')
-def opinion_view(id):
-    opinion = Opinion.query.get_or_404(id)
-    return render_template('opinion.html', opinion=opinion)
